@@ -1,0 +1,37 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration {
+    public function up(): void
+    {
+        Schema::table('laporan_pending', function (Blueprint $table) {
+            $table->text('alamat')->nullable();
+        });
+
+        Schema::table('laporan_kehilangan', function (Blueprint $table) {
+            $table->text('alamat')->nullable();
+        });
+
+        Schema::table('laporan_penemuan', function (Blueprint $table) {
+            $table->text('alamat')->nullable();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('laporan_pending', function (Blueprint $table) {
+            $table->dropColumn('alamat');
+        });
+
+        Schema::table('laporan_kehilangan', function (Blueprint $table) {
+            $table->dropColumn('alamat');
+        });
+
+        Schema::table('laporan_penemuan', function (Blueprint $table) {
+            $table->dropColumn('alamat');
+        });
+    }
+};
