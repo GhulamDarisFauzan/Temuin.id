@@ -39,7 +39,7 @@ class LaporanPenemuanController extends Controller
             'kabupaten' => 'required',
             'kecamatan' => 'required',
             'no_telp' => 'required',
-            'gambar' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'gambar' => 'nullable|image|mimes:jpg,jpeg,png|max:10240',
 
             'alamat' => 'nullable',
             'latitude' => 'nullable',

@@ -61,18 +61,18 @@ setTimeout(() => {
             Isi dengan jelas agar pemilik dapat memverifikasi penemuanmu.
         </div>
 
-        <form action="/user/konfirmasi" method="POST" enctype="multipart/form-data" class="space-y-5">
+        <form id="formKonfirmasi" action="/user/konfirmasi" method="POST" enctype="multipart/form-data" class="space-y-5">
         @csrf
 
         <!-- hidden -->
         <input type="hidden" name="laporan_id" value="{{ $data->id }}">
         <input type="hidden" name="type" value="{{ $data->type }}">
-        <input type="hidden"name="redirect_url"value="/user/detail-acc/{{ $data->type }}/{{ $data->id }}">
+        <input type="hidden" name="redirect_url" value="/user/detail-acc/{{ $data->type }}/{{ $data->id }}">
 
         <!-- KRONOLOGI -->
         <div>
             <label class="block text-xs md:text-sm font-semibold text-gray-700 mb-1">
-                Kronologi
+                Kronologi <span class="text-gray-400 font-normal">(Opsional)</span>
             </label>
 
             <textarea name="kronologi"
@@ -83,10 +83,10 @@ setTimeout(() => {
         <!-- UPLOAD -->
         <div>
             <label class="block text-xs md:text-sm font-semibold text-gray-700 mb-1">
-                Upload Bukti
+                Upload Bukti <span class="text-red-500">*</span>
             </label>
 
-            <input type="file" name="bukti"
+            <input type="file" name="bukti" id="bukti" accept="image/*"
                 class="w-full text-xs md:text-sm border border-gray-300 rounded-lg p-2 bg-gray-50 cursor-pointer">
         </div>
 
@@ -103,6 +103,25 @@ setTimeout(() => {
     </div>
 
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+document.getElementById('formKonfirmasi').addEventListener('submit', function(e) {
+    const bukti = document.getElementById('bukti');
+
+    if (bukti.files.length === 0) {
+        e.preventDefault();
+
+        Swal.fire({
+            icon: 'warning',
+            title: 'Foto bukti wajib diisi',
+            text: 'Silakan unggah foto bukti penemuan terlebih dahulu.',
+            confirmButtonText: 'Oke'
+        });
+    }
+});
+</script>
 
 </body>
 </html>

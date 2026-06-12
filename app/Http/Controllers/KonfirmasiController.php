@@ -15,11 +15,12 @@ class KonfirmasiController extends Controller
     $request->validate([
         'laporan_id' => 'required',
         'type' => 'required',
-        'kronologi' => 'required',
-        'bukti' => 'nullable|image'
+        'kronologi' => 'nullable|string',
+        'bukti' => 'required|image|mimes:jpg,jpeg,png|max:10240'
     ]);
 
-    $data = $request->only('laporan_id','type','kronologi');
+    $data = $request->only('laporan_id','type');
+    $data['kronologi'] = $request->kronologi ?? '';
 
     if ($request->hasFile('bukti')) {
         $file = $request->file('bukti');

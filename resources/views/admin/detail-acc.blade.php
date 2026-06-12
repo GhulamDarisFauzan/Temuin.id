@@ -92,6 +92,13 @@
                     <p>{{ $data->no_telp }}</p>
                 </div>
 
+                @php
+                    $konfirmasi = \App\Models\Konfirmasi::where('laporan_id', $data->id)
+                        ->where('type', strtolower($data->type))
+                        ->latest()
+                        ->first();
+                @endphp
+
                 <!-- STATUS -->
                 <div>
                     <p class="text-gray-400 text-xs mb-1">Status</p>
@@ -100,19 +107,16 @@
                         <span class="px-3 py-1 text-xs rounded-full bg-green-100 text-green-600 font-semibold">
                             ✓ Sudah Ditemukan
                         </span>
+                    @elseif($konfirmasi)
+                        <span class="px-3 py-1 text-xs rounded-full bg-blue-100 text-blue-600 font-semibold">
+                            🕒 Menunggu Konfirmasi
+                        </span>
                     @else
                         <span class="px-3 py-1 text-xs rounded-full bg-yellow-100 text-yellow-600 font-semibold">
                             ⏳ Belum Ditemukan
                         </span>
                     @endif
                 </div>
-
-                @php
-                    $konfirmasi = \App\Models\Konfirmasi::where('laporan_id', $data->id)
-                        ->where('type', strtolower($data->type))
-                        ->where('status', 'pending')
-                        ->first();
-                @endphp
 
                 @if($konfirmasi)
                 <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-xl">
@@ -121,8 +125,17 @@
                         ⚠ Ada Konfirmasi dari User
                     </p>
 
-                    <p class="text-xs text-gray-600 mb-3">
-                        {{ $konfirmasi->kronologi }}
+                    @if($konfirmasi->bukti)
+                        <div class="bg-white rounded-lg border overflow-hidden flex items-center justify-center h-40 mb-3">
+                            <img src="{{ asset($konfirmasi->bukti) }}"
+                                 onclick="openImage(this.src)"
+                                 class="max-w-full max-h-full object-contain cursor-pointer hover:scale-105 transition">
+                        </div>
+                    @endif
+
+                    <p class="text-gray-400 text-xs">Kronologi Konfirmasi</p>
+                    <p class="text-xs text-gray-600 mb-3 border-b pb-2">
+                        {{ $konfirmasi->kronologi ?: 'Tidak ada kronologi tambahan.' }}
                     </p>
 
                     <div class="flex gap-2">

@@ -17,58 +17,77 @@
         Temuin<span class="text-red-500">.id</span>
     </h1>
 
-    <!-- MENU -->
-    <div class="flex flex-wrap items-center justify-center md:justify-end gap-2">
+<!-- MENU -->
+<div class="flex flex-wrap items-center justify-center md:justify-end gap-2">
 
-        <a href="/user/about"
-           class="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white shadow hover:shadow-md transition">
-           About
+    <a href="{{ auth()->check() ? '/user/about' : route('login.user') }}"
+       class="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white shadow hover:shadow-md transition">
+       About
+    </a>
+
+    <a href="{{ auth()->check() ? '/user/kehilangan' : route('login.user') }}"
+       class="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-red-500 text-white shadow hover:shadow-md transition">
+       Kehilangan
+    </a>
+
+    <a href="{{ auth()->check() ? '/user/penemuan' : route('login.user') }}"
+       class="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-blue-500 text-white shadow hover:bg-blue-600 hover:shadow-md transition">
+       Penemuan
+    </a>
+
+    <!-- 🔥 TAMBAHAN REVISI 30 HARI -->
+    <!-- Menu ini dipakai untuk melihat semua laporan user, termasuk yang sudah kadaluarsa dan bisa dikirim ulang -->
+    @auth
+        <a href="/user/laporan-saya"
+           class="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-yellow-400 text-gray-900 shadow hover:bg-yellow-500 hover:shadow-md transition">
+           Laporan Saya
         </a>
+    @endauth
+    <!-- 🔥 TAMBAHAN REVISI 30 HARI -->
 
-        <a href="/user/kehilangan"
-           class="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-red-500 text-white shadow hover:shadow-md transition">
-           Kehilangan
-        </a>
-
-        <a href="/user/penemuan"
-            class="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-blue-500 text-white shadow hover:bg-blue-600 hover:shadow-md transition">
-            Penemuan
-        </a>
-
-        @auth
-        <!-- 🔥 PROFILE (SEKARANG BISA DIKLIK) -->
+    @auth
         <a href="/user/profile"
            class="flex items-center gap-2 ml-2 bg-white px-3 py-1.5 rounded-full shadow hover:shadow-md transition">
 
-            <!-- ICON -->
             <div class="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center text-xs font-bold">
                 {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
             </div>
 
-            <!-- NAMA -->
             <span class="text-xs sm:text-sm font-semibold text-gray-700">
                 {{ Auth::user()->name }}
             </span>
-
         </a>
 
-        <!-- LOGOUT -->
         <form method="POST" action="{{ route('logout') }}" class="ml-1">
             @csrf
             <button class="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-black text-white hover:bg-gray-800 transition">
                 Logout
             </button>
         </form>
-        @endauth
+    @endauth
 
-    </div>
+    @guest
+        <a href="{{ route('login.user') }}"
+           class="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-green-500 text-white shadow hover:bg-green-600 transition">
+           Masuk
+        </a>
+    @endguest
+
+</div>
 
 </div>
 
     <!-- Title -->
-    <h2 class="text-2xl sm:text-3xl font-bold mb-6 text-gray-800 text-center md:text-left">
-        Daftar Laporan
+    <h2 class="text-2xl sm:text-3xl font-bold mb-3 text-gray-800 text-center md:text-left">
+        Daftar Laporan Aktif
     </h2>
+
+    <!-- 🔥 TAMBAHAN REVISI 30 HARI -->
+    <div class="mb-6 bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-xl text-sm">
+        Dashboard ini hanya menampilkan laporan yang masih aktif dan belum melewati masa berlaku 30 hari.
+        Laporan yang kadaluarsa dapat dilihat kembali di menu <b>Laporan Saya</b>.
+    </div>
+    <!-- 🔥 TAMBAHAN REVISI 30 HARI -->
 
     <!-- FORM -->
     <form method="GET" action="/user/dashboard">
@@ -116,7 +135,7 @@
         </div>
 
         <!-- KATEGORI -->
-        <div class="grid grid-cols-3 gap-3 sm:gap-4 mb-6">
+        <div class="grid grid-cols-3 gap-3 sm:gap-4 mb-4">
 
             <button name="kategori" value="all"
                 class="p-3 sm:p-4 rounded-xl text-center font-medium text-sm sm:text-base transition
@@ -140,10 +159,35 @@
 
     </form>
 
+    <!-- TOMBOL URUTKAN TERDEKAT -->
+    <div class="flex flex-col sm:flex-row justify-between items-center gap-3 mb-6">
+
+        <button type="button"
+            onclick="urutkanTerdekat()"
+            class="w-full sm:w-auto bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-full text-sm shadow transition">
+            Urutkan Terdekat
+        </button>
+
+        @if(request('terdekat'))
+            <a href="/user/dashboard"
+               class="w-full sm:w-auto text-center bg-white hover:bg-gray-100 text-gray-700 px-5 py-2 rounded-full text-sm shadow transition">
+                Reset Urutan
+            </a>
+        @endif
+
+    </div>
+
     <!-- Cards -->
 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
 
 @foreach($laporan as $item)
+
+@php
+    $konfirmasi = \App\Models\Konfirmasi::where('laporan_id', $item->id)
+                    ->where('type', $item->jenis)
+                    ->latest()
+                    ->first();
+@endphp
 
 <div class="bg-white rounded-2xl shadow hover:shadow-xl transition duration-300 overflow-hidden">
 
@@ -173,6 +217,10 @@
                 <span class="bg-green-100 text-green-600 text-[10px] px-2 py-1 rounded-full">
                     Ditemukan
                 </span>
+            @elseif($konfirmasi)
+                <span class="bg-blue-100 text-blue-600 text-[10px] px-2 py-1 rounded-full">
+                    Menunggu Konfirmasi
+                </span>
             @else
                 <span class="bg-yellow-100 text-yellow-700 text-[10px] px-2 py-1 rounded-full">
                     Belum
@@ -180,6 +228,23 @@
             @endif
 
         </div>
+
+        <!-- 🔥 TAMBAHAN REVISI 30 HARI -->
+        <!-- Menampilkan batas masa aktif laporan di dashboard -->
+        @if($item->expired_at)
+            <div class="mb-2">
+                <span class="bg-green-100 text-green-700 text-[10px] px-2 py-1 rounded-full font-semibold">
+                    Aktif sampai {{ $item->expired_at->format('d M Y') }}
+                </span>
+            </div>
+        @else
+            <div class="mb-2">
+                <span class="bg-gray-100 text-gray-600 text-[10px] px-2 py-1 rounded-full font-semibold">
+                    Masa aktif belum tersedia
+                </span>
+            </div>
+        @endif
+        <!-- 🔥 TAMBAHAN REVISI 30 HARI -->
 
         <!-- NAMA -->
         <h3 class="font-semibold text-gray-800 text-sm sm:text-base line-clamp-1">
@@ -190,6 +255,13 @@
         <p class="text-xs text-gray-500 mt-1">
             {{ $item->kecamatan }}, {{ $item->kabupaten }}
         </p>
+
+        <!-- JARAK -->
+        @if(request('terdekat') && isset($item->jarak))
+            <p class="text-xs text-gray-500 mt-1">
+                Jarak: {{ number_format($item->jarak, 2) }} km dari lokasi Anda
+            </p>
+        @endif
 
         <!-- PRIORITAS -->
         @if($item->kategori == 'orang')
@@ -225,7 +297,7 @@
 <!-- KOSONG -->
 @if($laporan->isEmpty())
 <p class="col-span-4 text-center text-gray-500">
-    Belum ada data
+    Belum ada data laporan aktif
 </p>
 @endif
 
@@ -234,7 +306,6 @@
 </div>
 
 <script>
-
 
 let dataWilayah = JSON.parse('@json($kabupatens)');
 
@@ -287,6 +358,29 @@ document.querySelectorAll('select').forEach(el => {
         this.form.submit();
     });
 });
+
+// 🔥 FITUR URUTKAN TERDEKAT
+function urutkanTerdekat() {
+    if (!navigator.geolocation) {
+        alert('Browser tidak mendukung fitur lokasi.');
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        function(position) {
+            const url = new URL(window.location.href);
+
+            url.searchParams.set('terdekat', '1');
+            url.searchParams.set('lat', position.coords.latitude);
+            url.searchParams.set('lng', position.coords.longitude);
+
+            window.location.href = url.toString();
+        },
+        function() {
+            alert('Izin lokasi ditolak. Fitur laporan terdekat tidak dapat digunakan.');
+        }
+    );
+}
 
 </script>
 

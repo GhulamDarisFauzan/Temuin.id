@@ -2,15 +2,14 @@
 
 namespace App\Http\Controllers;
 
-
 use App\Models\Message;
-
 use Illuminate\Http\Request;
 use App\Models\LaporanPending;
 use App\Models\LaporanKehilangan;
 use App\Models\LaporanPenemuan;
 use App\Models\Konfirmasi;
-use App\Models\Kabupaten; // ✅ TAMBAHAN: untuk mengambil data kabupaten dan kecamatan dari database
+use App\Models\Kabupaten;
+use App\Models\VisitorLog; // 🔥 TRAFFIC WEBSITE
 
 class AdminController extends Controller
 {
@@ -23,8 +22,17 @@ class AdminController extends Controller
         $kabupaten  = $request->kabupaten;
         $kecamatan  = $request->kecamatan;
 
-        $qKehilangan = LaporanKehilangan::query();
-        $qPenemuan   = LaporanPenemuan::query();
+        // 🔥 TAMBAHAN REVISI 30 HARI
+        // Dashboard admin hanya menampilkan laporan yang masih aktif dan belum kadaluarsa
+        $qKehilangan = LaporanKehilangan::query()
+            ->where('status_laporan', 'aktif')
+            ->where('expired_at', '>=', now());
+
+        // 🔥 TAMBAHAN REVISI 30 HARI
+        // Dashboard admin hanya menampilkan laporan yang masih aktif dan belum kadaluarsa
+        $qPenemuan = LaporanPenemuan::query()
+            ->where('status_laporan', 'aktif')
+            ->where('expired_at', '>=', now());
 
         // 🔍 SEARCH
         if ($search) {
@@ -70,52 +78,135 @@ class AdminController extends Controller
                 return $item;
             });
 
-        // ✅ TAMBAHAN: ambil data kabupaten beserta kecamatannya dari database untuk filter wilayah
+        // ✅ AMBIL DATA KABUPATEN UNTUK FILTER WILAYAH
         $kabupatens = Kabupaten::with('kecamatans')
             ->orderBy('nama')
             ->get();
 
         // =====================================================
+        // 🔥 GABUNG LAPORAN KEHILANGAN DAN PENEMUAN
+        // =====================================================
+        $laporan = $kehilangan->merge($penemuan);
+
+        // =====================================================
+        // 🔥 FITUR URUTKAN TERDEKAT
+        // =====================================================
+        $laporan = $this->hitungJarakLaporan($laporan, $request);
+
+        // =====================================================
         // 🔥 BAGIAN PRIORITAS / RANKING LAPORAN ADMIN
         // =====================================================
-        // Urutan:
-        // 1. Belum ditemukan paling atas
-        // 2. Orang lebih penting daripada barang
-        // 3. Kehilangan lebih penting daripada penemuan
-        // 4. Terbaru paling atas dalam kelompok yang sama
-        // 5. Sudah ditemukan turun ke bawah
+        if ($request->terdekat && $request->lat && $request->lng) {
+            $laporan = $laporan
+                ->sortBy(function ($item) {
+                    return $item->jarak ?? 999999;
+                })
+                ->values();
+        } else {
+            $laporan = $laporan
+                ->sortBy(function ($item) {
+
+                    // 🔥 PRIORITAS STATUS
+                    $statusPriority =
+                        strtolower($item->status ?? 'belum') == 'ditemukan'
+                        ? 5 : 1;
+
+                    // 🔥 PRIORITAS KATEGORI
+                    $kategoriPriority =
+                        strtolower($item->kategori ?? 'barang') == 'orang'
+                        ? 1 : 2;
+
+                    // 🔥 PRIORITAS JENIS
+                    $jenisPriority =
+                        strtolower($item->jenis ?? 'penemuan') == 'kehilangan'
+                        ? 1 : 2;
+
+                    // 🔥 PRIORITAS WAKTU
+                    $waktu = strtotime($item->created_at);
+
+                    return
+                        ($statusPriority * 1000000) +
+                        ($kategoriPriority * 100000) +
+                        ($jenisPriority * 10000) -
+                        $waktu;
+                })
+                ->values();
+        }
+
         // =====================================================
-        $laporan = $kehilangan
-            ->merge($penemuan)
-            ->sortBy(function ($item) {
+        // 🔥 TRAFFIC WEBSITE
+        // =====================================================
+        $pengunjungHariIni = VisitorLog::whereDate('visit_date', today())->count();
 
-                // 🔥 PRIORITAS STATUS
-                $statusPriority =
-                    strtolower($item->status ?? 'belum') == 'ditemukan'
-                    ? 5 : 1;
+        $pengunjungBulanIni = VisitorLog::whereMonth('visit_date', now()->month)
+            ->whereYear('visit_date', now()->year)
+            ->count();
 
-                // 🔥 PRIORITAS KATEGORI
-                $kategoriPriority =
-                    strtolower($item->kategori ?? 'barang') == 'orang'
-                    ? 1 : 2;
+        $totalPengunjung = VisitorLog::count();
 
-                // 🔥 PRIORITAS JENIS
-                $jenisPriority =
-                    strtolower($item->jenis ?? 'penemuan') == 'kehilangan'
-                    ? 1 : 2;
+        $laporanHariIni = LaporanKehilangan::whereDate('created_at', today())->count()
+            + LaporanPenemuan::whereDate('created_at', today())->count();
 
-                // 🔥 PRIORITAS WAKTU
-                $waktu = strtotime($item->created_at);
+        $laporanBulanIni = LaporanKehilangan::whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->count()
+            + LaporanPenemuan::whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->count();
 
-                return
-                    ($statusPriority * 1000000) +
-                    ($kategoriPriority * 100000) +
-                    ($jenisPriority * 10000) -
-                    $waktu;
-            })
-            ->values();
+        $totalLaporan = LaporanKehilangan::count() + LaporanPenemuan::count();
 
-        return view('admin.dashboard', compact('laporan', 'kabupatens')); // ✅ TAMBAHAN: kirim kabupatens ke view
+        return view('admin.dashboard', compact(
+            'laporan',
+            'kabupatens',
+
+            // 🔥 TRAFFIC WEBSITE
+            'pengunjungHariIni',
+            'pengunjungBulanIni',
+            'totalPengunjung',
+            'laporanHariIni',
+            'laporanBulanIni',
+            'totalLaporan'
+        ));
+    }
+
+    // =====================================================
+    // 🔥 FUNCTION HITUNG JARAK LAPORAN
+    // =====================================================
+    private function hitungJarakLaporan($laporan, Request $request)
+    {
+        return $laporan->map(function ($item) use ($request) {
+            $item->jarak = null;
+
+            if (
+                $request->terdekat &&
+                $request->lat &&
+                $request->lng &&
+                $item->latitude &&
+                $item->longitude
+            ) {
+                $lat1 = deg2rad($request->lat);
+                $lng1 = deg2rad($request->lng);
+                $lat2 = deg2rad($item->latitude);
+                $lng2 = deg2rad($item->longitude);
+
+                // Radius bumi dalam kilometer
+                $earthRadius = 6371;
+
+                $dLat = $lat2 - $lat1;
+                $dLng = $lng2 - $lng1;
+
+                $a = sin($dLat / 2) * sin($dLat / 2) +
+                    cos($lat1) * cos($lat2) *
+                    sin($dLng / 2) * sin($dLng / 2);
+
+                $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+                $item->jarak = $earthRadius * $c;
+            }
+
+            return $item;
+        });
     }
 
     // 🔍 DATA PENDING
@@ -135,7 +226,6 @@ class AdminController extends Controller
 
             LaporanKehilangan::create([
                 'kategori'    => $data->kategori,
-
                 'nama_barang' => $data->nama_barang,
                 'deskripsi'   => $data->deskripsi,
                 'kronologi'   => $data->kronologi,
@@ -144,22 +234,22 @@ class AdminController extends Controller
                 'kecamatan'   => $data->kecamatan,
                 'no_telp'     => $data->no_telp,
                 'gambar'      => $data->gambar,
-
                 'alamat'      => $data->alamat,
                 'latitude'    => $data->latitude,
                 'longitude'   => $data->longitude,
-
                 'user_id'     => $data->user_id,
-
-                // 🔥 STATUS AWAL
                 'status'      => 'belum',
+
+                // 🔥 TAMBAHAN REVISI 30 HARI
+                // Masa aktif laporan dimulai setelah admin ACC
+                'status_laporan' => 'aktif',
+                'expired_at'     => now()->addDays(30),
             ]);
 
         } else {
 
             LaporanPenemuan::create([
                 'kategori'    => $data->kategori,
-
                 'nama_barang' => $data->nama_barang,
                 'deskripsi'   => $data->deskripsi,
                 'kronologi'   => $data->kronologi,
@@ -168,19 +258,19 @@ class AdminController extends Controller
                 'kecamatan'   => $data->kecamatan,
                 'no_telp'     => $data->no_telp,
                 'gambar'      => $data->gambar,
-
                 'alamat'      => $data->alamat,
                 'latitude'    => $data->latitude,
                 'longitude'   => $data->longitude,
-
                 'user_id'     => $data->user_id,
-
-                // 🔥 STATUS AWAL
                 'status'      => 'belum',
+
+                // 🔥 TAMBAHAN REVISI 30 HARI
+                // Masa aktif laporan dimulai setelah admin ACC
+                'status_laporan' => 'aktif',
+                'expired_at'     => now()->addDays(30),
             ]);
         }
 
-        // hapus dari pending
         $data->delete();
 
         return redirect('/admin/verifikasi')->with('success', 'Laporan diterima');
@@ -246,6 +336,11 @@ class AdminController extends Controller
         }
 
         $data->status = 'ditemukan';
+
+        // 🔥 TAMBAHAN REVISI 30 HARI
+        // Kalau laporan sudah ditemukan, tidak dianggap laporan aktif lagi
+        $data->status_laporan = 'selesai';
+
         $data->save();
 
         return back()->with('success', 'Status diubah jadi ditemukan');
@@ -270,8 +365,15 @@ class AdminController extends Controller
             $laporan = LaporanPenemuan::find($k->laporan_id);
         }
 
-        $laporan->status = 'ditemukan';
-        $laporan->save();
+        if ($laporan) {
+            $laporan->status = 'ditemukan';
+
+            // 🔥 TAMBAHAN REVISI 30 HARI
+            // Kalau laporan sudah ditemukan, status aktifnya selesai
+            $laporan->status_laporan = 'selesai';
+
+            $laporan->save();
+        }
 
         $k->status = 'diterima';
         $k->save();
@@ -290,47 +392,44 @@ class AdminController extends Controller
         return back()->with('success', 'Konfirmasi ditolak');
     }
 
+    // 🗑️ HAPUS
+    public function hapus($type, $id)
+    {
+        Konfirmasi::where('laporan_id', $id)
+            ->where('type', $type)
+            ->delete();
 
+        Message::where('conversation_id', $id)->delete();
 
-        // //hapus
-        // public function hapus($type, $id)
-        // {
-        //     if ($type == 'kehilangan') {
-        //         $laporan = LaporanKehilangan::findOrFail($id);
-        //     } elseif ($type == 'penemuan') {
-        //         $laporan = LaporanPenemuan::findOrFail($id);
-        //     } else {
-        //         abort(404);
-        //     }
-        
-        //     $laporan->delete();
-        
-        //     return redirect('/admin/daftar')->with('success', 'Laporan berhasil dihapus.');
-        // }
+        if ($type == 'kehilangan') {
+            LaporanKehilangan::findOrFail($id)->delete();
+        } elseif ($type == 'penemuan') {
+            LaporanPenemuan::findOrFail($id)->delete();
+        } else {
+            abort(404);
+        }
 
-
-//hapus
-public function hapus($type, $id)
-{
-    // hapus konfirmasi yang berkaitan dengan laporan
-    \App\Models\Konfirmasi::where('laporan_id', $id)
-        ->where('type', $type)
-        ->delete();
-
-    // hapus pesan/chat jika conversation_id sama dengan id laporan
-    \App\Models\Message::where('conversation_id', $id)->delete();
-
-    // hapus laporan kehilangan / penemuan
-    if ($type == 'kehilangan') {
-        \App\Models\LaporanKehilangan::findOrFail($id)->delete();
-    } elseif ($type == 'penemuan') {
-        \App\Models\LaporanPenemuan::findOrFail($id)->delete();
-    } else {
-        abort(404);
+        return redirect('/admin/daftar')
+            ->with('success', 'Laporan, konfirmasi, dan chat berhasil dihapus.');
     }
 
-    return redirect('/admin/daftar')
-        ->with('success', 'Laporan, konfirmasi, dan chat berhasil dihapus.');
-}
+    // 🔄 UBAH STATUS
+    public function ubahStatus($type, $id)
+    {
+        if ($type === 'kehilangan') {
+            $laporan = LaporanKehilangan::findOrFail($id);
+        } else {
+            $laporan = LaporanPenemuan::findOrFail($id);
+        }
 
+        $laporan->status = 'ditemukan';
+
+        // 🔥 TAMBAHAN REVISI 30 HARI
+        // Kalau laporan ditandai ditemukan, laporan dianggap selesai
+        $laporan->status_laporan = 'selesai';
+
+        $laporan->save();
+
+        return back()->with('success', 'Status laporan berhasil ditandai ditemukan.');
+    }
 }

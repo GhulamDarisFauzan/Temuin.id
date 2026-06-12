@@ -5,13 +5,27 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\LaporanKehilangan;
 use App\Models\LaporanPenemuan;
-use App\Models\Kabupaten; // ✅ TAMBAHAN: untuk mengambil data kabupaten dan kecamatan dari database
+use App\Models\Kabupaten;
+use App\Models\VisitorLog; // 🔥 TRAFFIC WEBSITE
+
 
 class UserController extends Controller
 {
     // 🔥 DASHBOARD
     public function dashboard(Request $request)
     {
+        // =====================================================
+        // 🔥 TRAFFIC WEBSITE
+        // =====================================================
+        // 1 IP address hanya dihitung 1 kali dalam 1 hari
+        VisitorLog::firstOrCreate([
+            'ip_address' => $request->ip(),
+            'visit_date' => now()->toDateString(),
+        ]);
+        // =====================================================
+        // 🔥 TRAFFIC WEBSITE
+        // =====================================================
+
         // 🔍 AMBIL INPUT FILTER
         $search     = $request->search;
         $kategori   = $request->kategori;
@@ -45,7 +59,6 @@ class UserController extends Controller
         $kehilangan = $qKehilangan
             ->get()
             ->map(function ($item) {
-                // 🔥 PENANDA JENIS DATA UNTUK LINK DETAIL & LABEL CARD
                 $item->jenis = 'kehilangan';
                 return $item;
             });
@@ -76,62 +89,115 @@ class UserController extends Controller
         $penemuan = $qPenemuan
             ->get()
             ->map(function ($item) {
-                // 🔥 PENANDA JENIS DATA UNTUK LINK DETAIL & LABEL CARD
                 $item->jenis = 'penemuan';
                 return $item;
             });
 
-        // ✅ TAMBAHAN: ambil data kabupaten beserta kecamatannya dari database untuk filter wilayah
+        // ✅ AMBIL DATA KABUPATEN UNTUK FILTER WILAYAH
         $kabupatens = Kabupaten::with('kecamatans')
             ->orderBy('nama')
             ->get();
 
         // =====================================================
+        // 🔥 GABUNG LAPORAN KEHILANGAN DAN PENEMUAN
+        // =====================================================
+        $laporan = $kehilangan->merge($penemuan);
+
+        // =====================================================
+        // 🔥 FITUR URUTKAN TERDEKAT
+        // =====================================================
+        // Jika user klik tombol Urutkan Terdekat,
+        // sistem mengambil lat/lng dari browser,
+        // lalu menghitung jarak user ke setiap laporan.
+        // =====================================================
+        $laporan = $this->hitungJarakLaporan($laporan, $request);
+
+        // =====================================================
         // 🔥 BAGIAN PRIORITAS / RANKING LAPORAN
         // =====================================================
-        // Urutan yang dipakai:
-        // 1. Laporan yang BELUM ditemukan tampil paling atas.
-        // 2. Kategori ORANG lebih penting daripada BARANG.
-        // 3. Data TERBARU tampil lebih atas dalam kelompok yang sama.
-        // 4. Laporan yang SUDAH ditemukan turun ke bawah.
+        // Jika sedang mode terdekat, laporan diurutkan berdasarkan jarak.
+        // Jika tidak, laporan diurutkan berdasarkan prioritas biasa.
         // =====================================================
-        $laporan = $kehilangan
-        ->merge($penemuan)
-        ->sortBy(function ($item) {
-    
-            // 🔥 STATUS
-            // belum ditemukan lebih penting
-            $statusPriority =
-                strtolower($item->status ?? 'belum') == 'ditemukan'
-                ? 5 : 1;
-    
-            // 🔥 KATEGORI
-            // orang lebih penting dari barang
-            $kategoriPriority =
-                strtolower($item->kategori ?? 'barang') == 'orang'
-                ? 1 : 2;
-    
-            // 🔥 JENIS
-            // kehilangan lebih penting dari penemuan
-            $jenisPriority =
-                strtolower($item->jenis ?? 'penemuan') == 'kehilangan'
-                ? 1 : 2;
-    
-            // 🔥 TERBARU
-            $waktu =
-                strtotime($item->created_at);
-    
-            // 🔥 GABUNG SEMUA PRIORITAS
-            return
-                ($statusPriority * 1000000) +
-                ($kategoriPriority * 100000) +
-                ($jenisPriority * 10000) -
-                $waktu;
-    
-        })
-        ->values();
+        if ($request->terdekat && $request->lat && $request->lng) {
+            $laporan = $laporan
+                ->sortBy(function ($item) {
+                    return $item->jarak ?? 999999;
+                })
+                ->values();
+        } else {
+            $laporan = $laporan
+                ->sortBy(function ($item) {
+                    // 🔥 STATUS
+                    // belum ditemukan lebih penting
+                    $statusPriority =
+                        strtolower($item->status ?? 'belum') == 'ditemukan'
+                        ? 5 : 1;
 
-        return view('user.dashboard', compact('laporan', 'kabupatens')); // ✅ TAMBAHAN: kirim kabupatens ke view
+                    // 🔥 KATEGORI
+                    // orang lebih penting dari barang
+                    $kategoriPriority =
+                        strtolower($item->kategori ?? 'barang') == 'orang'
+                        ? 1 : 2;
+
+                    // 🔥 JENIS
+                    // kehilangan lebih penting dari penemuan
+                    $jenisPriority =
+                        strtolower($item->jenis ?? 'penemuan') == 'kehilangan'
+                        ? 1 : 2;
+
+                    // 🔥 TERBARU
+                    $waktu = strtotime($item->created_at);
+
+                    // 🔥 GABUNG SEMUA PRIORITAS
+                    return
+                        ($statusPriority * 1000000) +
+                        ($kategoriPriority * 100000) +
+                        ($jenisPriority * 10000) -
+                        $waktu;
+                })
+                ->values();
+        }
+
+        return view('user.dashboard', compact('laporan', 'kabupatens'));
+    }
+
+    // =====================================================
+    // 🔥 FUNCTION HITUNG JARAK LAPORAN
+    // =====================================================
+    private function hitungJarakLaporan($laporan, Request $request)
+    {
+        return $laporan->map(function ($item) use ($request) {
+            $item->jarak = null;
+
+            if (
+                $request->terdekat &&
+                $request->lat &&
+                $request->lng &&
+                $item->latitude &&
+                $item->longitude
+            ) {
+                $lat1 = deg2rad($request->lat);
+                $lng1 = deg2rad($request->lng);
+                $lat2 = deg2rad($item->latitude);
+                $lng2 = deg2rad($item->longitude);
+
+                // Radius bumi dalam kilometer
+                $earthRadius = 6371;
+
+                $dLat = $lat2 - $lat1;
+                $dLng = $lng2 - $lng1;
+
+                $a = sin($dLat / 2) * sin($dLat / 2) +
+                    cos($lat1) * cos($lat2) *
+                    sin($dLng / 2) * sin($dLng / 2);
+
+                $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+                $item->jarak = $earthRadius * $c;
+            }
+
+            return $item;
+        });
     }
 
     // 🔥 DETAIL
@@ -145,6 +211,67 @@ class UserController extends Controller
 
         $data->type = $type;
 
-        return view('user.detail-acc', compact('data'));
+        $konfirmasi = \App\Models\Konfirmasi::where('laporan_id', $id)
+            ->where('type', $type)
+            ->latest()
+            ->first();
+
+        return view('user.detail-acc', compact('data', 'konfirmasi'));
     }
+
+    // 🔥 STATUS USER
+    public function ubahStatus($type, $id)
+    {
+        if ($type == 'kehilangan') {
+            $laporan = \App\Models\LaporanKehilangan::findOrFail($id);
+        } else {
+            $laporan = \App\Models\LaporanPenemuan::findOrFail($id);
+        }
+
+        if ($laporan->user_id != auth()->id()) {
+            abort(403);
+        }
+
+        $laporan->status = 'ditemukan';
+        $laporan->save();
+
+        return back()->with('success', 'Laporan berhasil ditandai sudah ditemukan');
+    }
+
+
+    //30 hari
+    public function laporanSaya()
+{
+    $kehilangan = LaporanKehilangan::where('user_id', auth()->id())
+        ->latest()
+        ->get();
+
+    $penemuan = LaporanPenemuan::where('user_id', auth()->id())
+        ->latest()
+        ->get();
+
+    return view('user.laporan-saya', compact('kehilangan', 'penemuan'));
+}
+
+public function kirimUlang($type, $id)
+{
+    if ($type === 'kehilangan') {
+        $laporan = LaporanKehilangan::where('user_id', auth()->id())
+            ->findOrFail($id);
+    } else {
+        $laporan = LaporanPenemuan::where('user_id', auth()->id())
+            ->findOrFail($id);
+    }
+
+    if ($laporan->expired_at && $laporan->expired_at->isFuture()) {
+        return back()->with('error', 'Laporan masih aktif dan belum bisa dikirim ulang.');
+    }
+
+    $laporan->update([
+        'status_laporan' => 'aktif',
+        'expired_at' => now()->addDays(30),
+    ]);
+
+    return back()->with('success', 'Laporan berhasil dikirim ulang selama 30 hari.');
+}
 }

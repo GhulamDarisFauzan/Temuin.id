@@ -15,9 +15,13 @@ use Illuminate\Support\Facades\Auth;
 
 
 
-Route::get('/', function () {
-    return view('welcome');
-});
+///halaman utama
+
+// Route::get('/', function () {
+//     return view('welcome');
+// });
+
+Route::get('/', [UserController::class, 'dashboard'])->name('home');
 
 // Route::get('/dashboard', function () {
 //     return view('dashboard');
@@ -81,9 +85,12 @@ Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])
 // DITAMBAHKAN / DIUBAH:
 // Dashboard user diarahkan ke UserController agar bisa mengirim data
 // seperti $kabupatens dan $laporan ke view user.dashboard.
-Route::get('/user/dashboard', [UserController::class, 'dashboard'])
-    ->middleware('auth');
+// Route::get('/user/dashboard', [UserController::class, 'dashboard'])
+//     ->middleware('auth');
 
+
+Route::get('/user/dashboard', [UserController::class, 'dashboard'])
+    ->name('user.dashboard');
 
 // ======================
 // About admin
@@ -231,3 +238,22 @@ Route::get('/auth/google/callback', function () {
 Route::delete('/admin/hapus/{type}/{id}', [AdminController::class, 'hapus'])
     ->middleware('auth')
     ->name('admin.hapus');
+
+
+    //tandai ditemukan admin
+    Route::get('/admin/status/{type}/{id}', [AdminController::class, 'ubahStatus'])
+    ->name('admin.status');
+
+
+
+    //status user
+    Route::get('/user/status/{type}/{id}', [UserController::class, 'ubahStatus'])
+    ->middleware('auth')
+    ->name('user.status');
+
+    //30 hari
+    Route::get('/user/laporan-saya', [UserController::class, 'laporanSaya'])
+    ->name('user.laporan-saya');
+
+    Route::post('/user/kirim-ulang/{type}/{id}', [UserController::class, 'kirimUlang'])
+    ->name('user.kirim-ulang');

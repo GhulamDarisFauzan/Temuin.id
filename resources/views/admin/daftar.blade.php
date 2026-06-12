@@ -89,7 +89,7 @@
                 @php
                     $konfirmasi = \App\Models\Konfirmasi::where('laporan_id', $item->id)
                                     ->where('type', strtolower($item->type))
-                                    ->where('status', 'pending')
+                                    ->latest()
                                     ->first();
                 @endphp
 
@@ -99,7 +99,7 @@
                     </span>
                 @elseif($konfirmasi)
                     <span class="bg-yellow-500 text-white px-3 py-1 rounded-full text-xs">
-                        Menunggu
+                        Menunggu Konfirmasi
                     </span>
                 @else
                     <span class="bg-gray-500 text-white px-3 py-1 rounded-full text-xs">
@@ -110,12 +110,12 @@
 
             <td class="p-3 flex flex-wrap gap-2">
 
-            @if($konfirmasi)
-            <a href="/admin/konfirmasi"
-               class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs shadow transition">
-               Konfirmasi
-            </a>
-            @endif
+                @if($konfirmasi)
+                <a href="/admin/konfirmasi"
+                   class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs shadow transition">
+                   Konfirmasi
+                </a>
+                @endif
 
                 <a href="/admin/detail-acc/{{ strtolower($item->type) }}/{{ $item->id }}"
                    class="bg-black hover:bg-gray-800 text-white px-3 py-1.5 rounded-lg text-xs shadow transition">
@@ -126,11 +126,6 @@
                     <a href="/admin/status/{{ strtolower($item->type) }}/{{ $item->id }}"
                        class="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs shadow transition">
                        Tandai
-                    </a>
-                @else
-                    <a href="/admin/status/{{ strtolower($item->type) }}/{{ $item->id }}"
-                       class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1.5 rounded-lg text-xs shadow transition">
-                       Batal
                     </a>
                 @endif
 
@@ -175,7 +170,7 @@
 
     $konfirmasi = \App\Models\Konfirmasi::where('laporan_id', $item->id)
                     ->where('type', strtolower($item->type))
-                    ->where('status', 'pending')
+                    ->latest()
                     ->first();
 @endphp
 
@@ -208,7 +203,7 @@
         @if($item->status == 'ditemukan')
             <span class="bg-green-500 text-white px-2 py-1 rounded-full text-xs">Sudah Ditemukan</span>
         @elseif($konfirmasi)
-            <span class="bg-yellow-500 text-white px-2 py-1 rounded-full text-xs">Menunggu</span>
+            <span class="bg-yellow-500 text-white px-2 py-1 rounded-full text-xs">Menunggu Konfirmasi</span>
         @else
             <span class="bg-gray-500 text-white px-2 py-1 rounded-full text-xs">Belum</span>
         @endif
@@ -233,11 +228,6 @@
             <a href="/admin/status/{{ strtolower($item->type) }}/{{ $item->id }}"
                class="bg-green-500 text-white px-3 py-1 rounded-lg text-xs">
                Tandai
-            </a>
-        @else
-            <a href="/admin/status/{{ strtolower($item->type) }}/{{ $item->id }}"
-               class="bg-yellow-500 text-white px-3 py-1 rounded-lg text-xs">
-               Batal
             </a>
         @endif
 

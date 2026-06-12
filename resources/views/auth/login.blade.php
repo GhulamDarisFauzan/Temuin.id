@@ -42,8 +42,20 @@
                 <input type="email" name="email" required placeholder="Email"
                     class="w-full border-b mb-4 py-3 outline-none bg-transparent text-sm focus:border-red-500">
 
-                <input type="password" name="password" required placeholder="Password"
-                    class="w-full border-b mb-6 py-3 outline-none bg-transparent text-sm focus:border-red-500">
+                    <div class="relative mb-6">
+    <input type="password"
+           id="password"
+           name="password"
+           required
+           placeholder="Password"
+           class="w-full border-b py-3 pr-10 outline-none bg-transparent text-sm focus:border-red-500">
+
+    <button type="button"
+            onclick="togglePassword()"
+            class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">
+        👁️
+    </button>
+</div>
                 
                     <div class="flex justify-end mb-6">
                         <a href="{{ route('password.request') }}"
@@ -64,6 +76,18 @@
     </div>
 
 </div>
+
+<script>
+function togglePassword() {
+    const password = document.getElementById('password');
+
+    if (password.type === 'password') {
+        password.type = 'text';
+    } else {
+        password.type = 'password';
+    }
+}
+</script>
 
 </body>
 </html>

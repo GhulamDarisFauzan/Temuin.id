@@ -23,11 +23,18 @@ class LaporanKehilangan extends Model
         'kategori',
         'alamat',
         'status', // 🔥 WAJIB
+
+        // 🔥 TAMBAHAN REVISI 30 HARI
+        'status_laporan',
+        'expired_at',
     ];
 
     protected $casts = [
         'latitude' => 'float',
         'longitude' => 'float',
+
+        // 🔥 TAMBAHAN REVISI 30 HARI
+        'expired_at' => 'datetime',
     ];
 
     public function user()

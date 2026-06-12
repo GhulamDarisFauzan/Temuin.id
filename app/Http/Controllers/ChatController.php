@@ -30,14 +30,24 @@ class ChatController extends Controller
     {
         $request->validate([
             'conversation_id' => 'required',
-            'message' => 'required'
+            'message' => 'required',
+
+            // 🔥 REVISI REPLY CHAT
+            'reply_to' => 'nullable|exists:messages,id',
         ]);
 
         $msg = Message::create([
             'conversation_id' => $request->conversation_id,
             'sender_id' => auth()->id(),
-            'message' => $request->message
+            'message' => $request->message,
+
+            // 🔥 REVISI REPLY CHAT
+            'reply_to' => $request->reply_to,
         ]);
+
+        // 🔥 REVISI REPLY CHAT
+        // Ambil ulang pesan beserta relasi user dan pesan yang dibalas
+        $msg = Message::with(['user', 'reply.user'])->find($msg->id);
 
         return response()->json($msg);
     }
@@ -45,11 +55,11 @@ class ChatController extends Controller
     // ambil pesan (AJAX polling)
     public function fetch($id)
     {
-        $messages = Message::with('user') // 🔥 ambil relasi user
+        $messages = Message::with(['user', 'reply.user']) // 🔥 REVISI REPLY CHAT
             ->where('conversation_id', $id)
             ->orderBy('created_at')
             ->get();
-    
+
         return response()->json($messages);
     }
 }
