@@ -275,7 +275,8 @@
         <!-- BUTTON -->
         <div class="flex justify-end items-center mt-3">
 
-            <a href="/user/detail-acc/{{ $item->jenis }}/{{ $item->id }}"
+            <!-- ✅ DIPERBAIKI: Jika belum login, tombol Detail masuk ke login user, bukan login admin -->
+            <a href="{{ auth()->check() ? '/user/detail-acc/'.$item->jenis.'/'.$item->id : route('login.user') }}"
                class="
                {{ $item->jenis == 'kehilangan'
                     ? 'bg-red-500 hover:bg-red-600'
