@@ -17,7 +17,6 @@
 
     <div class="max-w-7xl mx-auto">
 
-        <!-- HEADER -->
         <div class="bg-white px-4 py-3 rounded-xl shadow-sm flex justify-between items-center mb-6">
             <h1 class="font-bold text-lg md:text-xl">
                 Temuin<span class="text-red-500">.id</span>
@@ -46,7 +45,6 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                <!-- FORM INPUT -->
                 <div class="bg-white rounded-2xl shadow-sm p-4 md:p-5 space-y-4">
 
                     <select name="kategori" class="w-full border-b outline-none p-3 bg-transparent text-sm">
@@ -84,17 +82,22 @@
 
                 </div>
 
-                <!-- MAP -->
                 <div class="bg-white rounded-2xl shadow-sm p-4 md:p-5 flex flex-col items-center justify-center">
 
                     <div id="map" class="w-full h-72 md:h-80 lg:h-64 rounded-xl shadow"></div>
+
+                    <!-- TAMBAHAN: TOMBOL GUNAKAN LOKASI SAYA -->
+                    <button type="button" id="btnLokasiSaya"
+                        class="mt-3 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full text-xs md:text-sm transition active:scale-95">
+                        Gunakan Lokasi Saya Sekarang
+                    </button>
 
                     <input type="hidden" name="latitude" id="lat">
                     <input type="hidden" name="longitude" id="lng">
                     <input type="hidden" name="alamat" id="alamat_input">
 
                     <p class="text-xs md:text-sm text-red-500 mt-3 text-center">
-                        * Klik peta atau cari lokasi untuk menentukan titik
+                        * Klik peta, cari lokasi, atau gunakan lokasi saya untuk menentukan titik
                     </p>
 
                     <p id="alamat" class="text-xs md:text-sm mt-2 text-gray-700 text-center leading-relaxed">
@@ -115,35 +118,21 @@
 
                 </div>
 
-                <!-- UPLOAD -->
                 <div class="bg-white rounded-2xl shadow-sm p-4 md:p-5 flex flex-col items-center justify-center">
 
                     <label for="upload" class="w-full cursor-pointer group">
-
                         <div class="relative w-full aspect-[4/3] bg-white border-2 border-dashed border-gray-300 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition">
 
-                            <img id="preview"
-                                class="w-full h-full object-contain hidden bg-gray-100">
+                            <img id="preview" class="w-full h-full object-contain hidden bg-gray-100">
 
-                            <div id="placeholder"
-                                class="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-
+                            <div id="placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
                                 <div class="w-14 h-14 md:w-16 md:h-16 rounded-full bg-gray-100 flex items-center justify-center mb-3 text-3xl">
                                     📷
                                 </div>
 
-                                <p class="text-sm font-semibold text-gray-700">
-                                    Upload Foto
-                                </p>
-
-                                <p class="text-xs text-gray-500 mt-1">
-                                    PNG, JPG, JPEG
-                                </p>
-
-                                <p class="text-[11px] text-gray-400 mt-2">
-                                    Klik untuk memilih gambar
-                                </p>
-
+                                <p class="text-sm font-semibold text-gray-700">Upload Foto</p>
+                                <p class="text-xs text-gray-500 mt-1">PNG, JPG, JPEG</p>
+                                <p class="text-[11px] text-gray-400 mt-2">Klik untuk memilih gambar</p>
                             </div>
 
                             <div class="absolute bottom-3 right-3 bg-black/70 text-white text-xs px-3 py-1 rounded-full opacity-0 group-hover:opacity-100 transition">
@@ -151,17 +140,11 @@
                             </div>
 
                         </div>
-
                     </label>
 
                     <p id="fileName" class="text-xs text-gray-500 mt-2 hidden text-center"></p>
 
-                    <input type="file"
-                        name="gambar"
-                        class="hidden"
-                        id="upload"
-                        accept="image/*"
-                        onchange="previewImage(event)">
+                    <input type="file" name="gambar" class="hidden" id="upload" accept="image/*" onchange="previewImage(event)">
 
                 </div>
 
@@ -186,25 +169,98 @@
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
-    // ================= MAP =================
     var map = L.map('map').setView([-5.45, 105.26], 13);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap'
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap © CARTO',
+        maxZoom: 20
     }).addTo(map);
 
     let markers = [];
     let polyline = null;
     let alamatList = [];
+    let wilayahMarker = null;
 
-    // ================= SEARCH MAP =================
+    function bersihkanMarker() {
+        markers.forEach(m => map.removeLayer(m));
+        markers = [];
+        alamatList = [];
+
+        if (polyline) {
+            map.removeLayer(polyline);
+            polyline = null;
+        }
+
+        if (wilayahMarker) {
+            map.removeLayer(wilayahMarker);
+            wilayahMarker = null;
+        }
+    }
+
+    function setTitikLokasi(lat, lng, alamat, zoomLevel = 17) {
+        bersihkanMarker();
+
+        map.setView([lat, lng], zoomLevel);
+
+        let marker = L.marker([lat, lng]).addTo(map);
+        markers.push(marker);
+
+        document.getElementById('lat').value = lat;
+        document.getElementById('lng').value = lng;
+
+        document.getElementById('alamat').innerText = alamat;
+        document.getElementById('alamat_input').value = alamat;
+
+        alamatList.push(alamat);
+    }
+
+    function arahkanPeta(namaLokasi, zoomLevel = 13) {
+        if (!namaLokasi) return;
+
+        const query = encodeURIComponent(namaLokasi + ', Lampung, Indonesia');
+
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1&countrycodes=id&addressdetails=1`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.length > 0) {
+                    const lat = parseFloat(data[0].lat);
+                    const lng = parseFloat(data[0].lon);
+
+                    map.setView([lat, lng], zoomLevel);
+
+                    if (wilayahMarker) {
+                        map.removeLayer(wilayahMarker);
+                    }
+
+                    wilayahMarker = L.marker([lat, lng]).addTo(map)
+                        .bindPopup("Area: " + namaLokasi)
+                        .openPopup();
+
+                    setTimeout(() => {
+                        map.invalidateSize();
+                    }, 300);
+                }
+            })
+            .catch(() => {
+                console.log("Gagal mengarahkan peta ke wilayah");
+            });
+    }
+
     if (window.GeoSearch) {
-        const provider = new GeoSearch.OpenStreetMapProvider();
+        const provider = new GeoSearch.OpenStreetMapProvider({
+            params: {
+                countrycodes: 'id',
+                bounded: 1,
+                viewbox: '103.5,-3.7,106.2,-6.2',
+                addressdetails: 1,
+                limit: 8
+            }
+        });
 
         const search = new GeoSearch.GeoSearchControl({
             provider: provider,
             style: 'bar',
-            searchLabel: 'Cari lokasi...',
+            searchLabel: 'Cari lokasi di Lampung...',
             autoComplete: true,
             autoCompleteDelay: 250,
             showMarker: false,
@@ -217,64 +273,73 @@ document.addEventListener("DOMContentLoaded", function () {
         map.addControl(search);
 
         map.on('geosearch/showlocation', function(result) {
-
             let lat = result.location.y;
             let lng = result.location.x;
+            let alamat = result.location.label;
 
-            markers.forEach(m => map.removeLayer(m));
-            markers = [];
-            alamatList = [];
-
-            if (polyline) {
-                map.removeLayer(polyline);
-                polyline = null;
-            }
-
-            map.setView([lat, lng], 15);
-
-            let marker = L.marker([lat, lng]).addTo(map);
-            markers.push(marker);
-
-            document.getElementById('lat').value = lat;
-            document.getElementById('lng').value = lng;
-
-            document.getElementById('alamat').innerText = result.location.label;
-            document.getElementById('alamat_input').value = result.location.label;
-
-            alamatList.push(result.location.label);
+            setTitikLokasi(lat, lng, alamat, 17);
         });
     }
 
-    // ================= AUTO LOKASI USER =================
-    if (navigator.geolocation) {
+    // ================= TAMBAHAN: GUNAKAN LOKASI SAYA =================
+    const btnLokasiSaya = document.getElementById('btnLokasiSaya');
+
+    btnLokasiSaya.addEventListener('click', function () {
+        if (!navigator.geolocation) {
+            alert('Browser tidak mendukung fitur lokasi.');
+            return;
+        }
+
+        btnLokasiSaya.innerText = 'Mengambil lokasi...';
+        btnLokasiSaya.disabled = true;
+
         navigator.geolocation.getCurrentPosition(
             function(position) {
                 let lat = position.coords.latitude;
                 let lng = position.coords.longitude;
 
-                map.setView([lat, lng], 15);
+                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&zoom=18`)
+                    .then(res => res.json())
+                    .then(data => {
+                        let alamat = data.display_name || "Alamat tidak ditemukan";
+
+                        setTitikLokasi(lat, lng, alamat, 18);
+
+                        btnLokasiSaya.innerText = 'Gunakan Lokasi Saya';
+                        btnLokasiSaya.disabled = false;
+                    })
+                    .catch(() => {
+                        setTitikLokasi(lat, lng, 'Lokasi berhasil diambil, tetapi alamat tidak ditemukan', 18);
+
+                        btnLokasiSaya.innerText = 'Gunakan Lokasi Saya';
+                        btnLokasiSaya.disabled = false;
+                    });
             },
             function(error) {
-                console.log("Lokasi user tidak diizinkan");
+                alert('Lokasi tidak diizinkan atau gagal diambil.');
+                btnLokasiSaya.innerText = 'Gunakan Lokasi Saya';
+                btnLokasiSaya.disabled = false;
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
             }
         );
-    }
+    });
 
     setTimeout(() => map.invalidateSize(), 300);
 
-    // ================= KLIK MAP =================
     map.on('click', function(e) {
 
         let mode = document.querySelector('input[name="lokasi"]:checked').value;
 
         if (mode === '1') {
-            markers.forEach(m => map.removeLayer(m));
-            markers = [];
-            alamatList = [];
-
-            if (polyline) {
-                map.removeLayer(polyline);
-                polyline = null;
+            bersihkanMarker();
+        } else {
+            if (wilayahMarker) {
+                map.removeLayer(wilayahMarker);
+                wilayahMarker = null;
             }
         }
 
@@ -287,7 +352,6 @@ document.addEventListener("DOMContentLoaded", function () {
         document.getElementById('lng').value = last.lng;
 
         if (markers.length > 1) {
-
             let latlngs = markers.map(m => m.getLatLng());
 
             if (polyline) {
@@ -297,7 +361,7 @@ document.addEventListener("DOMContentLoaded", function () {
             polyline = L.polyline(latlngs).addTo(map);
         }
 
-        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${last.lat}&lon=${last.lng}`)
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${last.lat}&lon=${last.lng}&addressdetails=1&zoom=18`)
         .then(res => res.json())
         .then(data => {
 
@@ -319,13 +383,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
     });
 
-    // ================= DROPDOWN DARI DATABASE =================
     const kab = document.getElementById('kabupaten');
     const kec = document.getElementById('kecamatan');
 
     kab.addEventListener('change', function () {
         const selectedOption = this.options[this.selectedIndex];
         const kabupatenId = selectedOption.getAttribute('data-id');
+        const namaKabupaten = this.value;
+
+        arahkanPeta(namaKabupaten, 11);
 
         kec.innerHTML = '<option value="">Memuat kecamatan...</option>';
 
@@ -352,9 +418,17 @@ document.addEventListener("DOMContentLoaded", function () {
             });
     });
 
+    kec.addEventListener('change', function () {
+        const namaKecamatan = this.value;
+        const namaKabupaten = kab.value;
+
+        if (namaKecamatan && namaKabupaten) {
+            arahkanPeta(namaKecamatan + ', ' + namaKabupaten, 14);
+        }
+    });
+
 });
 
-// ================= PREVIEW GAMBAR =================
 function previewImage(event) {
 
     const input = event.target;

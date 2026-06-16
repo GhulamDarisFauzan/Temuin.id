@@ -89,12 +89,18 @@
 
                     <div id="map" class="w-full h-72 md:h-80 lg:h-64 rounded-xl shadow"></div>
 
+                    <!-- TAMBAHAN: TOMBOL GUNAKAN LOKASI SAYA -->
+                    <button type="button" id="btnLokasiSaya"
+                        class="mt-3 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full text-xs md:text-sm transition active:scale-95">
+                        Gunakan Lokasi Saya Sekarang
+                    </button>
+
                     <input type="hidden" name="latitude" id="lat">
                     <input type="hidden" name="longitude" id="lng">
                     <input type="hidden" name="alamat" id="alamat_input">
 
                     <p class="text-xs md:text-sm text-red-500 mt-3 text-center">
-                        * Klik peta atau cari lokasi untuk menentukan titik
+                        * Klik peta, cari lokasi, atau gunakan lokasi saya untuk menentukan titik
                     </p>
 
                     <p id="alamat" class="text-xs md:text-sm mt-2 text-gray-700 text-center leading-relaxed">
@@ -189,22 +195,99 @@ document.addEventListener("DOMContentLoaded", function () {
     // ================= MAP =================
     var map = L.map('map').setView([-5.45, 105.26], 13);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap'
+    // ================= PERUBAHAN: PETA LEBIH BAGUS DENGAN CARTO VOYAGER =================
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap © CARTO',
+        maxZoom: 20
     }).addTo(map);
 
     let markers = [];
     let polyline = null;
     let alamatList = [];
+    let wilayahMarker = null;
+
+    function bersihkanMarker() {
+        markers.forEach(m => map.removeLayer(m));
+        markers = [];
+        alamatList = [];
+
+        if (polyline) {
+            map.removeLayer(polyline);
+            polyline = null;
+        }
+
+        if (wilayahMarker) {
+            map.removeLayer(wilayahMarker);
+            wilayahMarker = null;
+        }
+    }
+
+    function setTitikLokasi(lat, lng, alamat, zoomLevel = 17) {
+        bersihkanMarker();
+
+        map.setView([lat, lng], zoomLevel);
+
+        let marker = L.marker([lat, lng]).addTo(map);
+        markers.push(marker);
+
+        document.getElementById('lat').value = lat;
+        document.getElementById('lng').value = lng;
+
+        document.getElementById('alamat').innerText = alamat;
+        document.getElementById('alamat_input').value = alamat;
+
+        alamatList.push(alamat);
+    }
+
+    // ================= TAMBAHAN: FUNGSI ARAHKAN PETA KE KABUPATEN / KECAMATAN =================
+    function arahkanPeta(namaLokasi, zoomLevel = 13) {
+        if (!namaLokasi) return;
+
+        const query = encodeURIComponent(namaLokasi + ', Lampung, Indonesia');
+
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1&countrycodes=id&addressdetails=1`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.length > 0) {
+                    const lat = parseFloat(data[0].lat);
+                    const lng = parseFloat(data[0].lon);
+
+                    map.setView([lat, lng], zoomLevel);
+
+                    if (wilayahMarker) {
+                        map.removeLayer(wilayahMarker);
+                    }
+
+                    wilayahMarker = L.marker([lat, lng]).addTo(map)
+                        .bindPopup("Area: " + namaLokasi)
+                        .openPopup();
+
+                    setTimeout(() => {
+                        map.invalidateSize();
+                    }, 300);
+                }
+            })
+            .catch(() => {
+                console.log("Gagal mengarahkan peta ke wilayah");
+            });
+    }
 
     // ================= SEARCH MAP =================
     if (window.GeoSearch) {
-        const provider = new GeoSearch.OpenStreetMapProvider();
+        const provider = new GeoSearch.OpenStreetMapProvider({
+            params: {
+                countrycodes: 'id',
+                bounded: 1,
+                viewbox: '103.5,-3.7,106.2,-6.2',
+                addressdetails: 1,
+                limit: 8
+            }
+        });
 
         const search = new GeoSearch.GeoSearchControl({
             provider: provider,
             style: 'bar',
-            searchLabel: 'Cari lokasi...',
+            searchLabel: 'Cari lokasi di Lampung...',
             autoComplete: true,
             autoCompleteDelay: 250,
             showMarker: false,
@@ -217,48 +300,60 @@ document.addEventListener("DOMContentLoaded", function () {
         map.addControl(search);
 
         map.on('geosearch/showlocation', function(result) {
-
             let lat = result.location.y;
             let lng = result.location.x;
+            let alamat = result.location.label;
 
-            markers.forEach(m => map.removeLayer(m));
-            markers = [];
-            alamatList = [];
-
-            if (polyline) {
-                map.removeLayer(polyline);
-                polyline = null;
-            }
-
-            map.setView([lat, lng], 15);
-
-            let marker = L.marker([lat, lng]).addTo(map);
-            markers.push(marker);
-
-            document.getElementById('lat').value = lat;
-            document.getElementById('lng').value = lng;
-
-            document.getElementById('alamat').innerText = result.location.label;
-            document.getElementById('alamat_input').value = result.location.label;
-
-            alamatList.push(result.location.label);
+            setTitikLokasi(lat, lng, alamat, 17);
         });
     }
 
-    // ================= AUTO LOKASI USER =================
-    if (navigator.geolocation) {
+    // ================= TAMBAHAN: GUNAKAN LOKASI SAYA =================
+    const btnLokasiSaya = document.getElementById('btnLokasiSaya');
+
+    btnLokasiSaya.addEventListener('click', function () {
+        if (!navigator.geolocation) {
+            alert('Browser tidak mendukung fitur lokasi.');
+            return;
+        }
+
+        btnLokasiSaya.innerText = 'Mengambil lokasi...';
+        btnLokasiSaya.disabled = true;
+
         navigator.geolocation.getCurrentPosition(
             function(position) {
                 let lat = position.coords.latitude;
                 let lng = position.coords.longitude;
 
-                map.setView([lat, lng], 15);
+                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&zoom=18`)
+                    .then(res => res.json())
+                    .then(data => {
+                        let alamat = data.display_name || "Alamat tidak ditemukan";
+
+                        setTitikLokasi(lat, lng, alamat, 18);
+
+                        btnLokasiSaya.innerText = 'Gunakan Lokasi Saya';
+                        btnLokasiSaya.disabled = false;
+                    })
+                    .catch(() => {
+                        setTitikLokasi(lat, lng, 'Lokasi berhasil diambil, tetapi alamat tidak ditemukan', 18);
+
+                        btnLokasiSaya.innerText = 'Gunakan Lokasi Saya';
+                        btnLokasiSaya.disabled = false;
+                    });
             },
             function(error) {
-                console.log("Lokasi user tidak diizinkan");
+                alert('Lokasi tidak diizinkan atau gagal diambil.');
+                btnLokasiSaya.innerText = 'Gunakan Lokasi Saya';
+                btnLokasiSaya.disabled = false;
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
             }
         );
-    }
+    });
 
     setTimeout(() => map.invalidateSize(), 300);
 
@@ -268,13 +363,11 @@ document.addEventListener("DOMContentLoaded", function () {
         let mode = document.querySelector('input[name="lokasi"]:checked').value;
 
         if (mode === '1') {
-            markers.forEach(m => map.removeLayer(m));
-            markers = [];
-            alamatList = [];
-
-            if (polyline) {
-                map.removeLayer(polyline);
-                polyline = null;
+            bersihkanMarker();
+        } else {
+            if (wilayahMarker) {
+                map.removeLayer(wilayahMarker);
+                wilayahMarker = null;
             }
         }
 
@@ -297,7 +390,7 @@ document.addEventListener("DOMContentLoaded", function () {
             polyline = L.polyline(latlngs).addTo(map);
         }
 
-        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${last.lat}&lon=${last.lng}`)
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${last.lat}&lon=${last.lng}&addressdetails=1&zoom=18`)
         .then(res => res.json())
         .then(data => {
 
@@ -326,6 +419,10 @@ document.addEventListener("DOMContentLoaded", function () {
     kab.addEventListener('change', function () {
         const selectedOption = this.options[this.selectedIndex];
         const kabupatenId = selectedOption.getAttribute('data-id');
+        const namaKabupaten = this.value;
+
+        // ================= TAMBAHAN: SAAT PILIH KABUPATEN, PETA LANGSUNG MENGARAH =================
+        arahkanPeta(namaKabupaten, 11);
 
         kec.innerHTML = '<option value="">Memuat kecamatan...</option>';
 
@@ -350,6 +447,16 @@ document.addEventListener("DOMContentLoaded", function () {
             .catch(() => {
                 kec.innerHTML = '<option value="">Gagal memuat kecamatan</option>';
             });
+    });
+
+    // ================= TAMBAHAN: SAAT PILIH KECAMATAN, PETA LANGSUNG MENGARAH =================
+    kec.addEventListener('change', function () {
+        const namaKecamatan = this.value;
+        const namaKabupaten = kab.value;
+
+        if (namaKecamatan && namaKabupaten) {
+            arahkanPeta(namaKecamatan + ', ' + namaKabupaten, 14);
+        }
     });
 
 });
