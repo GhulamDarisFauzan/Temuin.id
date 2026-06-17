@@ -10,16 +10,16 @@
 
 <body class="bg-gray-100 min-h-screen">
 
-<div class="p-4 sm:p-6 max-w-7xl mx-auto">
+<div class="px-4 py-5 sm:px-6 max-w-6xl mx-auto">
 
     <!-- NAVBAR -->
-    <div class="bg-white rounded-2xl shadow-sm px-4 py-3 mb-6 flex flex-col sm:flex-row justify-between items-center gap-3">
+    <div class="bg-white rounded-2xl shadow-sm px-4 sm:px-6 py-4 mb-5 flex flex-row justify-between items-center">
         <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight">
             Temuin<span class="text-red-500">.id</span>
         </h1>
 
         <a href="/user/dashboard"
-           class="w-full sm:w-auto text-center bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-full text-sm font-semibold shadow-sm transition active:scale-95">
+           class="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-full text-sm font-semibold shadow-sm transition active:scale-95">
             Back
         </a>
     </div>
@@ -37,12 +37,12 @@
     @endif
 
     <!-- TITLE -->
-    <div class="bg-white rounded-2xl shadow-sm p-5 mb-6">
+    <div class="bg-white rounded-2xl shadow-sm p-5 sm:p-6 mb-5">
         <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-800">
             Laporan Saya
         </h2>
 
-        <p class="text-sm text-gray-500 mt-2 leading-relaxed">
+        <p class="text-sm text-gray-500 mt-2 leading-relaxed max-w-4xl">
             Semua laporan milik Anda, termasuk laporan aktif dan kadaluarsa. Laporan yang sudah kadaluarsa dapat dikirim ulang agar tampil kembali di dashboard utama.
         </p>
     </div>
@@ -67,204 +67,212 @@
     </div>
 
     <!-- ================= LAPORAN KEHILANGAN ================= -->
-    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-4">
-        <div>
-            <h3 class="font-extrabold text-xl text-gray-800">
-                Laporan Kehilangan
-            </h3>
-            <p class="text-sm text-gray-500">
-                Daftar laporan kehilangan yang pernah Anda buat.
-            </p>
+    <section class="mb-10">
+
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-4">
+            <div>
+                <h3 class="font-extrabold text-xl text-gray-800">
+                    Laporan Kehilangan
+                </h3>
+                <p class="text-sm text-gray-500 mt-1">
+                    Daftar laporan kehilangan yang pernah Anda buat.
+                </p>
+            </div>
+
+            <span class="text-xs bg-red-50 text-red-600 px-3 py-1.5 rounded-full w-fit">
+                Tombol Kirim Ulang muncul jika laporan kadaluarsa.
+            </span>
         </div>
 
-        <span class="text-xs bg-red-50 text-red-600 px-3 py-1 rounded-full w-fit">
-            Tombol Kirim Ulang muncul jika laporan kadaluarsa.
-        </span>
-    </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
 
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 mb-10">
+            @forelse($kehilangan as $laporan)
 
-        @forelse($kehilangan as $laporan)
+                <div class="bg-white rounded-2xl shadow-sm hover:shadow-md transition border border-gray-100 overflow-hidden">
 
-            <div class="bg-white rounded-2xl shadow-sm hover:shadow-md transition border border-gray-100 overflow-hidden">
+                    <div class="p-5 flex flex-col h-full">
 
-                <div class="p-5 flex flex-col h-full">
-
-                    <div class="flex justify-between items-start gap-3 mb-4">
-                        <span class="bg-red-50 text-red-600 text-xs font-bold px-3 py-1 rounded-full">
-                            Kehilangan
-                        </span>
-
-                        @if($laporan->expired_at && $laporan->expired_at->isPast())
-                            <span class="shrink-0 bg-red-100 text-red-600 text-xs px-3 py-1 rounded-full font-bold">
-                                Kadaluarsa
+                        <div class="flex justify-between items-start gap-3 mb-4">
+                            <span class="bg-red-50 text-red-600 text-xs font-bold px-3 py-1 rounded-full">
+                                Kehilangan
                             </span>
-                        @else
-                            <span class="shrink-0 bg-green-100 text-green-600 text-xs px-3 py-1 rounded-full font-bold">
-                                Aktif
-                            </span>
-                        @endif
-                    </div>
 
-                    <h4 class="font-extrabold text-lg text-gray-800 line-clamp-1 mb-3">
-                        {{ $laporan->nama_barang }}
-                    </h4>
+                            @if($laporan->expired_at && $laporan->expired_at->isPast())
+                                <span class="shrink-0 bg-red-100 text-red-600 text-xs px-3 py-1 rounded-full font-bold">
+                                    Kadaluarsa
+                                </span>
+                            @else
+                                <span class="shrink-0 bg-green-100 text-green-600 text-xs px-3 py-1 rounded-full font-bold">
+                                    Aktif
+                                </span>
+                            @endif
+                        </div>
 
-                    <div class="space-y-2 text-sm text-gray-600 flex-1">
+                        <h4 class="font-extrabold text-lg sm:text-xl text-gray-800 line-clamp-1 mb-3">
+                            {{ $laporan->nama_barang }}
+                        </h4>
 
-                        <p>
-                            <span class="font-semibold text-gray-800">Lokasi:</span>
-                            {{ $laporan->kabupaten }} - {{ $laporan->kecamatan }}
-                        </p>
+                        <div class="space-y-2 text-sm text-gray-600 flex-1">
 
-                        <p>
-                            <span class="font-semibold text-gray-800">Berlaku sampai:</span>
-                            {{ $laporan->expired_at ? $laporan->expired_at->format('d M Y') : '-' }}
-                        </p>
+                            <p>
+                                <span class="font-semibold text-gray-800">Lokasi:</span>
+                                {{ $laporan->kabupaten }} - {{ $laporan->kecamatan }}
+                            </p>
 
-                        @if($laporan->expired_at && $laporan->expired_at->isPast())
-                            <div class="bg-red-50 text-red-600 text-xs p-3 rounded-xl leading-relaxed">
-                                Laporan ini sudah tidak tampil di dashboard utama.
-                            </div>
-                        @else
-                            <div class="bg-green-50 text-green-600 text-xs p-3 rounded-xl leading-relaxed">
-                                Laporan ini masih tampil di dashboard utama.
-                            </div>
-                        @endif
+                            <p>
+                                <span class="font-semibold text-gray-800">Berlaku sampai:</span>
+                                {{ $laporan->expired_at ? $laporan->expired_at->format('d M Y') : '-' }}
+                            </p>
 
-                    </div>
+                            @if($laporan->expired_at && $laporan->expired_at->isPast())
+                                <div class="bg-red-50 text-red-600 text-xs p-3 rounded-xl leading-relaxed">
+                                    Laporan ini sudah tidak tampil di dashboard utama.
+                                </div>
+                            @else
+                                <div class="bg-green-50 text-green-600 text-xs p-3 rounded-xl leading-relaxed">
+                                    Laporan ini masih tampil di dashboard utama.
+                                </div>
+                            @endif
 
-                    <div class="flex flex-col sm:flex-row gap-2 mt-5">
-                        <a href="/user/detail-acc/kehilangan/{{ $laporan->id }}"
-                           class="w-full text-center bg-gray-800 hover:bg-gray-900 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition active:scale-95">
-                            Detail
-                        </a>
+                        </div>
 
-                        @if($laporan->expired_at && $laporan->expired_at->isPast())
-                            <form action="/user/kirim-ulang/kehilangan/{{ $laporan->id }}" method="POST" class="w-full">
-                                @csrf
-                                <button class="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition active:scale-95">
-                                    Kirim Ulang
-                                </button>
-                            </form>
-                        @endif
+                        <div class="flex flex-col sm:flex-row gap-2 mt-5">
+                            <a href="/user/detail-acc/kehilangan/{{ $laporan->id }}"
+                               class="w-full text-center bg-gray-800 hover:bg-gray-900 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition active:scale-95">
+                                Detail
+                            </a>
+
+                            @if($laporan->expired_at && $laporan->expired_at->isPast())
+                                <form action="/user/kirim-ulang/kehilangan/{{ $laporan->id }}" method="POST" class="w-full">
+                                    @csrf
+                                    <button class="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition active:scale-95">
+                                        Kirim Ulang
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
+
                     </div>
 
                 </div>
 
-            </div>
+            @empty
 
-        @empty
+                <div class="md:col-span-2 bg-white rounded-2xl shadow-sm p-8 text-center border border-gray-100">
+                    <p class="text-gray-500 text-sm">
+                        Belum ada laporan kehilangan.
+                    </p>
+                </div>
 
-            <div class="md:col-span-2 xl:col-span-3 bg-white rounded-2xl shadow-sm p-8 text-center border border-gray-100">
-                <p class="text-gray-500 text-sm">
-                    Belum ada laporan kehilangan.
-                </p>
-            </div>
+            @endforelse
 
-        @endforelse
+        </div>
 
-    </div>
+    </section>
 
     <!-- ================= LAPORAN PENEMUAN ================= -->
-    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-4">
-        <div>
-            <h3 class="font-extrabold text-xl text-gray-800">
-                Laporan Penemuan
-            </h3>
-            <p class="text-sm text-gray-500">
-                Daftar laporan penemuan yang pernah Anda buat.
-            </p>
+    <section>
+
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-4">
+            <div>
+                <h3 class="font-extrabold text-xl text-gray-800">
+                    Laporan Penemuan
+                </h3>
+                <p class="text-sm text-gray-500 mt-1">
+                    Daftar laporan penemuan yang pernah Anda buat.
+                </p>
+            </div>
+
+            <span class="text-xs bg-green-50 text-green-600 px-3 py-1.5 rounded-full w-fit">
+                Tombol Kirim Ulang muncul jika laporan kadaluarsa.
+            </span>
         </div>
 
-        <span class="text-xs bg-green-50 text-green-600 px-3 py-1 rounded-full w-fit">
-            Tombol Kirim Ulang muncul jika laporan kadaluarsa.
-        </span>
-    </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
 
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            @forelse($penemuan as $laporan)
 
-        @forelse($penemuan as $laporan)
+                <div class="bg-white rounded-2xl shadow-sm hover:shadow-md transition border border-gray-100 overflow-hidden">
 
-            <div class="bg-white rounded-2xl shadow-sm hover:shadow-md transition border border-gray-100 overflow-hidden">
+                    <div class="p-5 flex flex-col h-full">
 
-                <div class="p-5 flex flex-col h-full">
-
-                    <div class="flex justify-between items-start gap-3 mb-4">
-                        <span class="bg-green-50 text-green-600 text-xs font-bold px-3 py-1 rounded-full">
-                            Penemuan
-                        </span>
-
-                        @if($laporan->expired_at && $laporan->expired_at->isPast())
-                            <span class="shrink-0 bg-red-100 text-red-600 text-xs px-3 py-1 rounded-full font-bold">
-                                Kadaluarsa
+                        <div class="flex justify-between items-start gap-3 mb-4">
+                            <span class="bg-green-50 text-green-600 text-xs font-bold px-3 py-1 rounded-full">
+                                Penemuan
                             </span>
-                        @else
-                            <span class="shrink-0 bg-green-100 text-green-600 text-xs px-3 py-1 rounded-full font-bold">
-                                Aktif
-                            </span>
-                        @endif
-                    </div>
 
-                    <h4 class="font-extrabold text-lg text-gray-800 line-clamp-1 mb-3">
-                        {{ $laporan->nama_barang }}
-                    </h4>
+                            @if($laporan->expired_at && $laporan->expired_at->isPast())
+                                <span class="shrink-0 bg-red-100 text-red-600 text-xs px-3 py-1 rounded-full font-bold">
+                                    Kadaluarsa
+                                </span>
+                            @else
+                                <span class="shrink-0 bg-green-100 text-green-600 text-xs px-3 py-1 rounded-full font-bold">
+                                    Aktif
+                                </span>
+                            @endif
+                        </div>
 
-                    <div class="space-y-2 text-sm text-gray-600 flex-1">
+                        <h4 class="font-extrabold text-lg sm:text-xl text-gray-800 line-clamp-1 mb-3">
+                            {{ $laporan->nama_barang }}
+                        </h4>
 
-                        <p>
-                            <span class="font-semibold text-gray-800">Lokasi:</span>
-                            {{ $laporan->kabupaten }} - {{ $laporan->kecamatan }}
-                        </p>
+                        <div class="space-y-2 text-sm text-gray-600 flex-1">
 
-                        <p>
-                            <span class="font-semibold text-gray-800">Berlaku sampai:</span>
-                            {{ $laporan->expired_at ? $laporan->expired_at->format('d M Y') : '-' }}
-                        </p>
+                            <p>
+                                <span class="font-semibold text-gray-800">Lokasi:</span>
+                                {{ $laporan->kabupaten }} - {{ $laporan->kecamatan }}
+                            </p>
 
-                        @if($laporan->expired_at && $laporan->expired_at->isPast())
-                            <div class="bg-red-50 text-red-600 text-xs p-3 rounded-xl leading-relaxed">
-                                Laporan ini sudah tidak tampil di dashboard utama.
-                            </div>
-                        @else
-                            <div class="bg-green-50 text-green-600 text-xs p-3 rounded-xl leading-relaxed">
-                                Laporan ini masih tampil di dashboard utama.
-                            </div>
-                        @endif
+                            <p>
+                                <span class="font-semibold text-gray-800">Berlaku sampai:</span>
+                                {{ $laporan->expired_at ? $laporan->expired_at->format('d M Y') : '-' }}
+                            </p>
 
-                    </div>
+                            @if($laporan->expired_at && $laporan->expired_at->isPast())
+                                <div class="bg-red-50 text-red-600 text-xs p-3 rounded-xl leading-relaxed">
+                                    Laporan ini sudah tidak tampil di dashboard utama.
+                                </div>
+                            @else
+                                <div class="bg-green-50 text-green-600 text-xs p-3 rounded-xl leading-relaxed">
+                                    Laporan ini masih tampil di dashboard utama.
+                                </div>
+                            @endif
 
-                    <div class="flex flex-col sm:flex-row gap-2 mt-5">
-                        <a href="/user/detail-acc/penemuan/{{ $laporan->id }}"
-                           class="w-full text-center bg-gray-800 hover:bg-gray-900 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition active:scale-95">
-                            Detail
-                        </a>
+                        </div>
 
-                        @if($laporan->expired_at && $laporan->expired_at->isPast())
-                            <form action="/user/kirim-ulang/penemuan/{{ $laporan->id }}" method="POST" class="w-full">
-                                @csrf
-                                <button class="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition active:scale-95">
-                                    Kirim Ulang
-                                </button>
-                            </form>
-                        @endif
+                        <div class="flex flex-col sm:flex-row gap-2 mt-5">
+                            <a href="/user/detail-acc/penemuan/{{ $laporan->id }}"
+                               class="w-full text-center bg-gray-800 hover:bg-gray-900 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition active:scale-95">
+                                Detail
+                            </a>
+
+                            @if($laporan->expired_at && $laporan->expired_at->isPast())
+                                <form action="/user/kirim-ulang/penemuan/{{ $laporan->id }}" method="POST" class="w-full">
+                                    @csrf
+                                    <button class="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition active:scale-95">
+                                        Kirim Ulang
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
+
                     </div>
 
                 </div>
 
-            </div>
+            @empty
 
-        @empty
+                <div class="md:col-span-2 bg-white rounded-2xl shadow-sm p-8 text-center border border-gray-100">
+                    <p class="text-gray-500 text-sm">
+                        Belum ada laporan penemuan.
+                    </p>
+                </div>
 
-            <div class="md:col-span-2 xl:col-span-3 bg-white rounded-2xl shadow-sm p-8 text-center border border-gray-100">
-                <p class="text-gray-500 text-sm">
-                    Belum ada laporan penemuan.
-                </p>
-            </div>
+            @endforelse
 
-        @endforelse
+        </div>
 
-    </div>
+    </section>
 
 </div>
 
