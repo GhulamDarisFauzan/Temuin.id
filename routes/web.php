@@ -107,7 +107,6 @@ Route::get('/admin/about', function () {
 Route::get('/user/about', function () {
     return view('user.about');
 })->name('about');
-
 // ===================================
 //Dfatar admin
 Route::get('/admin/daftar', [AdminController::class, 'daftar'])->middleware('auth');

@@ -20,10 +20,15 @@
 <!-- MENU -->
 <div class="flex flex-wrap items-center justify-center md:justify-end gap-2">
 
-    <a href="{{ auth()->check() ? '/user/about' : route('login.user') }}"
+    <!-- <a href="{{ auth()->check() ? '/user/about' : route('login.user') }}"
        class="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white shadow hover:shadow-md transition">
        About
-    </a>
+    </a> -->
+
+    <a href="{{ url('/user/about') }}"
+   class="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white shadow hover:shadow-md transition">
+   About
+</a>
 
     <a href="{{ auth()->check() ? '/user/kehilangan' : route('login.user') }}"
        class="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-red-500 text-white shadow hover:shadow-md transition">
