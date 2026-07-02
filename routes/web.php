@@ -100,9 +100,13 @@ Route::get('/admin/about', function () {
 })->middleware('auth');
 
 // About User
+// Route::get('/user/about', function () {
+//     return view('user.about');
+// })->middleware('auth');
+
 Route::get('/user/about', function () {
     return view('user.about');
-})->middleware('auth');
+})->name('about');
 
 // ===================================
 //Dfatar admin
@@ -132,7 +136,10 @@ Route::get('/admin/tolak/{id}', [AdminController::class, 'tolak']);
 //user
 
 //detail-acc user
-Route::get('/user/detail-acc/{type}/{id}', [UserController::class, 'detailAcc'])->middleware('auth');
+// Route::get('/user/detail-acc/{type}/{id}', [UserController::class, 'detailAcc'])->middleware('auth');
+
+Route::get('/user/detail-acc/{type}/{id}', [UserController::class, 'detailAcc'])
+    ->name('user.detail');
 
 //form kehilangan
 Route::get('/user/kehilangan', [LaporanKehilanganController::class, 'create'])
@@ -257,3 +264,7 @@ Route::delete('/admin/hapus/{type}/{id}', [AdminController::class, 'hapus'])
 
     Route::post('/user/kirim-ulang/{type}/{id}', [UserController::class, 'kirimUlang'])
     ->name('user.kirim-ulang');
+
+    Route::get('/detail/{type}/{id}', [UserController::class, 'detail'])
+    ->name('detail');
+    

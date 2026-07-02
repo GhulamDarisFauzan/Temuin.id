@@ -18,7 +18,8 @@
             Temuin<span class="text-red-500">.id</span>
         </h1>
 
-        <a href="/user/dashboard"
+        <!-- <a href="/user/dashboard" -->
+        <a href="/"
            class="text-xs md:text-sm bg-white border px-3 md:px-5 py-2 rounded-full shadow-sm">
            ← Back
         </a>
@@ -134,7 +135,8 @@
                            ✓ TANDAI SUDAH DITEMUKAN
                         </a>
                     @elseif(Auth::id() != $data->user_id)
-                        <a href="/user/konfirmasi/{{ strtolower($data->type) }}/{{ $data->id }}"
+                        <!-- <a href="/user/konfirmasi/{{ strtolower($data->type) }}/{{ $data->id }}" -->
+                        <a href="{{ auth()->check() ? '/user/konfirmasi/'.strtolower($data->type).'/'.$data->id : route('login.user') }}"
                            class="hidden md:block bg-green-500 text-white text-center py-3 rounded-xl mt-3 font-semibold">
                            Saya Menemukan
                         </a>
@@ -169,7 +171,8 @@
                          class="max-w-full max-h-full object-contain cursor-pointer hover:scale-105 transition">
                 </div>
 
-                <a href="/chat/{{ $data->id }}"
+                <!-- <a href="/chat/{{ $data->id }}" -->
+                <a href="{{ auth()->check() ? '/chat/'.$data->id : route('login.user') }}"
                    class="bg-blue-600 text-white text-center py-3 rounded-xl font-semibold">
                    💬 Chat Pemilik
                 </a>
@@ -193,14 +196,16 @@
                    Ditemukan
                 </a>
             @else
-                <a href="/user/konfirmasi/{{ strtolower($data->type) }}/{{ $data->id }}"
+                <!-- <a href="/user/konfirmasi/{{ strtolower($data->type) }}/{{ $data->id }}" -->
+                <a href="{{ auth()->check() ? '/user/konfirmasi/'.strtolower($data->type).'/'.$data->id : route('login.user') }}"
                    class="flex-1 text-center bg-green-500 text-white py-3 rounded-lg text-sm font-semibold">
                    Temukan
                 </a>
             @endif
         @endif
 
-        <a href="/chat/{{ $data->id }}"
+        <!-- <a href="/chat/{{ $data->id }}" -->
+        <a href="{{ auth()->check() ? '/chat/'.$data->id : route('login.user') }}"
            class="flex-1 text-center bg-blue-600 text-white py-3 rounded-lg text-sm font-semibold">
            Chat
         </a>
